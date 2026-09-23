@@ -2,63 +2,48 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\NetworkEvent;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class NetworkEventController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of network security events.
      */
-    public function index()
+    public function index(): View
     {
-        //
+        $events = NetworkEvent::orderByDesc('detected_at')
+            ->orderByDesc('id')
+            ->paginate(15);
+
+        return view('network-events.index', compact('events'));
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Display a specific network security event.
      */
-    public function create()
+    public function show(NetworkEvent $networkEvent): View
     {
-        //
+        return view('network-events.show', compact('networkEvent'));
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Update the status of a network security event.
      */
-    public function store(Request $request)
+    public function update(Request $request, NetworkEvent $networkEvent): RedirectResponse
     {
-        //
-    }
+        $validated = $request->validate([
+            'status' => ['required', 'in:unresolved,investigating,resolved'],
+        ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
+        $networkEvent->update([
+            'status' => $validated['status'],
+        ]);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return redirect()
+            ->route('security-events.index')
+            ->with('success', 'Security event status updated successfully.');
     }
 }
