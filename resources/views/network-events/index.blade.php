@@ -67,6 +67,192 @@
 
     </div>
 
+    {{-- Search and Filters --}}
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header">
+
+        <h3 class="card-title">
+            <i class="fas fa-filter me-2"></i>
+            Search & Filter Events
+        </h3>
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="GET"
+              action="{{ route('security-events.index') }}">
+
+            <div class="row g-3">
+
+                {{-- Search --}}
+                <div class="col-lg-4">
+
+                    <label for="search"
+                           class="form-label">
+                        Search
+                    </label>
+
+                    <input
+                        type="text"
+                        id="search"
+                        name="search"
+                        value="{{ request('search') }}"
+                        class="form-control"
+                        placeholder="IP address or event type..."
+                    >
+
+                </div>
+
+
+                {{-- Severity --}}
+                <div class="col-lg-2">
+
+                    <label for="severity"
+                           class="form-label">
+                        Severity
+                    </label>
+
+                    <select
+                        id="severity"
+                        name="severity"
+                        class="form-select"
+                    >
+
+                        <option value="">
+                            All Severities
+                        </option>
+
+                        <option value="high"
+                            {{ request('severity') === 'high' ? 'selected' : '' }}>
+                            High
+                        </option>
+
+                        <option value="medium"
+                            {{ request('severity') === 'medium' ? 'selected' : '' }}>
+                            Medium
+                        </option>
+
+                        <option value="low"
+                            {{ request('severity') === 'low' ? 'selected' : '' }}>
+                            Low
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                {{-- Status --}}
+                <div class="col-lg-2">
+
+                    <label for="status"
+                           class="form-label">
+                        Status
+                    </label>
+
+                    <select
+                        id="status"
+                        name="status"
+                        class="form-select"
+                    >
+
+                        <option value="">
+                            All Statuses
+                        </option>
+
+                        <option value="unresolved"
+                            {{ request('status') === 'unresolved' ? 'selected' : '' }}>
+                            Unresolved
+                        </option>
+
+                        <option value="investigating"
+                            {{ request('status') === 'investigating' ? 'selected' : '' }}>
+                            Investigating
+                        </option>
+
+                        <option value="resolved"
+                            {{ request('status') === 'resolved' ? 'selected' : '' }}>
+                            Resolved
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                {{-- Protocol --}}
+                <div class="col-lg-2">
+
+                    <label for="protocol"
+                           class="form-label">
+                        Protocol
+                    </label>
+
+                    <select
+                        id="protocol"
+                        name="protocol"
+                        class="form-select"
+                    >
+
+                        <option value="">
+                            All Protocols
+                        </option>
+
+                        <option value="TCP"
+                            {{ request('protocol') === 'TCP' ? 'selected' : '' }}>
+                            TCP
+                        </option>
+
+                        <option value="UDP"
+                            {{ request('protocol') === 'UDP' ? 'selected' : '' }}>
+                            UDP
+                        </option>
+
+                        <option value="ICMP"
+                            {{ request('protocol') === 'ICMP' ? 'selected' : '' }}>
+                            ICMP
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                {{-- Buttons --}}
+                <div class="col-lg-2 d-flex align-items-end gap-2">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+
+                        <i class="fas fa-search me-1"></i>
+                        Filter
+
+                    </button>
+
+
+                    <a
+                        href="{{ route('security-events.index') }}"
+                        class="btn btn-secondary"
+                    >
+
+                        <i class="fas fa-redo me-1"></i>
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
 
     {{-- Events Table --}}
     <div class="card shadow-sm">
