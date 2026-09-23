@@ -11,6 +11,8 @@ TARGET_IP = "10.55.241.109"
 
 LARAVEL_API_URL = "http://127.0.0.1:8002/api/network-events"
 
+LARAVEL_API_KEY = "a043c17db2f4ee83a4c70459baa86743a5094bc21dc6c72a445d4f7e15491bf7"
+
 # Detection thresholds
 PORT_SCAN_THRESHOLD = 5
 REPEATED_CONNECTION_THRESHOLD = 5
@@ -58,10 +60,13 @@ def send_event_to_laravel(
 
     try:
         response = requests.post(
-            LARAVEL_API_URL,
-            json=data,
-            timeout=5
-        )
+    LARAVEL_API_URL,
+    json=data,
+    headers={
+        "X-IDS-API-Key": LARAVEL_API_KEY
+    },
+    timeout=5
+)
 
         if response.status_code == 201:
             print("✓ Security event sent to Laravel successfully.")
