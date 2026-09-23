@@ -1,379 +1,147 @@
-<x-app-layout>
+@extends('layouts.adminlte')
 
-    <x-slot name="header">
+@section('header')
 
-        <div class="flex items-center justify-between">
+    <div class="d-flex justify-content-between align-items-center">
 
-            <div>
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    IDS Dashboard
-                </h2>
+        <div>
+            <h1 class="h3 mb-1">
+                IDS Dashboard
+            </h1>
 
-                <p class="text-sm text-gray-500 mt-1">
-                    Network Intrusion Detection and Monitoring System
-                </p>
+            <p class="text-muted mb-0">
+                Network Intrusion Detection and Monitoring System
+            </p>
+        </div>
+
+    </div>
+
+@endsection
+
+
+@section('content')
+
+    <!-- Event Status -->
+    <div class="row g-4 mb-4">
+
+        <!-- Total Events -->
+        <div class="col-lg-3 col-md-6">
+
+            <div class="card shadow-sm h-100">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between">
+
+                        <div>
+                            <p class="text-muted mb-1">
+                                Total Events
+                            </p>
+
+                            <h2 class="mb-0">
+                                {{ $totalEvents }}
+                            </h2>
+                        </div>
+
+                        <div class="text-primary fs-2">
+                            <i class="fas fa-list"></i>
+                        </div>
+
+                    </div>
+
+                </div>
+
             </div>
 
         </div>
 
-    </x-slot>
 
-    <div class="py-12">
+        <!-- Unresolved -->
+        <div class="col-lg-3 col-md-6">
 
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <div class="card shadow-sm h-100">
 
-            {{-- Dashboard Introduction --}}
-            <div class="mb-8">
+                <div class="card-body">
 
-                <h3 class="text-2xl font-bold text-gray-800">
-                    Security Overview
-                </h3>
-
-                <p class="text-gray-500 mt-1">
-                    Monitor detected network security events and their current status.
-                </p>
-
-            </div>
-
-
-            {{-- Main Statistics --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-
-                {{-- Total Events --}}
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-
-                    <div class="p-6">
-
-                        <p class="text-sm font-medium text-gray-500">
-                            Total Events
-                        </p>
-
-                        <p class="mt-2 text-3xl font-bold text-gray-800">
-                            {{ $totalEvents }}
-                        </p>
-
-                        <p class="mt-2 text-sm text-gray-500">
-                            Detected security events
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                {{-- Unresolved --}}
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-
-                    <div class="p-6">
-
-                        <p class="text-sm font-medium text-gray-500">
-                            Unresolved
-                        </p>
-
-                        <p class="mt-2 text-3xl font-bold text-red-600">
-                            {{ $unresolvedEvents }}
-                        </p>
-
-                        <p class="mt-2 text-sm text-gray-500">
-                            Events requiring attention
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                {{-- Investigating --}}
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-
-                    <div class="p-6">
-
-                        <p class="text-sm font-medium text-gray-500">
-                            Investigating
-                        </p>
-
-                        <p class="mt-2 text-3xl font-bold text-blue-600">
-                            {{ $investigatingEvents }}
-                        </p>
-
-                        <p class="mt-2 text-sm text-gray-500">
-                            Events under investigation
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                {{-- Resolved --}}
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-
-                    <div class="p-6">
-
-                        <p class="text-sm font-medium text-gray-500">
-                            Resolved
-                        </p>
-
-                        <p class="mt-2 text-3xl font-bold text-green-600">
-                            {{ $resolvedEvents }}
-                        </p>
-
-                        <p class="mt-2 text-sm text-gray-500">
-                            Events successfully handled
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            {{-- Severity Statistics --}}
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-                {{-- High Severity --}}
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-
-                    <div class="p-6">
-
-                        <div class="flex items-center justify-between">
-
-                            <div>
-                                <p class="text-sm font-medium text-gray-500">
-                                    High Severity
-                                </p>
-
-                                <p class="mt-2 text-3xl font-bold text-red-600">
-                                    {{ $highSeverity }}
-                                </p>
-                            </div>
-
-                            <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                HIGH
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                {{-- Medium Severity --}}
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-
-                    <div class="p-6">
-
-                        <div class="flex items-center justify-between">
-
-                            <div>
-                                <p class="text-sm font-medium text-gray-500">
-                                    Medium Severity
-                                </p>
-
-                                <p class="mt-2 text-3xl font-bold text-orange-600">
-                                    {{ $mediumSeverity }}
-                                </p>
-                            </div>
-
-                            <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
-                                MEDIUM
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                {{-- Low Severity --}}
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-
-                    <div class="p-6">
-
-                        <div class="flex items-center justify-between">
-
-                            <div>
-                                <p class="text-sm font-medium text-gray-500">
-                                    Low Severity
-                                </p>
-
-                                <p class="mt-2 text-3xl font-bold text-green-600">
-                                    {{ $lowSeverity }}
-                                </p>
-                            </div>
-
-                            <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                LOW
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            {{-- Recent Events --}}
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-
-                <div class="p-6">
-
-                    <div class="flex items-center justify-between mb-6">
+                    <div class="d-flex justify-content-between">
 
                         <div>
-
-                            <h3 class="text-lg font-semibold text-gray-800">
-                                Recent Security Events
-                            </h3>
-
-                            <p class="text-sm text-gray-500 mt-1">
-                                Latest detected network security events.
+                            <p class="text-muted mb-1">
+                                Unresolved
                             </p>
 
+                            <h2 class="mb-0">
+                                {{ $unresolvedEvents }}
+                            </h2>
                         </div>
 
-                        <a
-                            href="{{ route('security-events.index') }}"
-                            class="px-4 py-2 bg-gray-800 text-white text-sm font-semibold rounded-md hover:bg-gray-700"
-                        >
-                            View All Events
-                        </a>
+                        <div class="text-danger fs-2">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
 
                     </div>
 
+                </div>
 
-                    <div class="overflow-x-auto">
+            </div>
 
-                        <table class="min-w-full divide-y divide-gray-200">
-
-                            <thead class="bg-gray-50">
-
-                                <tr>
-
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                        ID
-                                    </th>
-
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                        Source IP
-                                    </th>
-
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                        Event Type
-                                    </th>
-
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                        Severity
-                                    </th>
-
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                        Status
-                                    </th>
-
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
-                                        Detected At
-                                    </th>
-
-                                </tr>
-
-                            </thead>
+        </div>
 
 
-                            <tbody class="bg-white divide-y divide-gray-200">
+        <!-- Investigating -->
+        <div class="col-lg-3 col-md-6">
 
-                                @forelse ($recentEvents as $event)
+            <div class="card shadow-sm h-100">
 
-                                    <tr class="hover:bg-gray-50">
+                <div class="card-body">
 
-                                        <td class="px-4 py-3 text-sm text-gray-700">
-                                            {{ $event->id }}
-                                        </td>
+                    <div class="d-flex justify-content-between">
 
-                                        <td class="px-4 py-3 text-sm text-gray-700">
-                                            {{ $event->source_ip }}
-                                        </td>
+                        <div>
+                            <p class="text-muted mb-1">
+                                Investigating
+                            </p>
 
-                                        <td class="px-4 py-3 text-sm text-gray-700">
-                                            {{ $event->event_type }}
-                                        </td>
+                            <h2 class="mb-0">
+                                {{ $investigatingEvents }}
+                            </h2>
+                        </div>
 
-                                        <td class="px-4 py-3">
+                        <div class="text-warning fs-2">
+                            <i class="fas fa-search"></i>
+                        </div>
 
-                                            @if ($event->severity === 'high')
+                    </div>
 
-                                                <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                                    High
-                                                </span>
+                </div>
 
-                                            @elseif ($event->severity === 'medium')
+            </div>
 
-                                                <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
-                                                    Medium
-                                                </span>
+        </div>
 
-                                            @else
 
-                                                <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                                    Low
-                                                </span>
+        <!-- Resolved -->
+        <div class="col-lg-3 col-md-6">
 
-                                            @endif
+            <div class="card shadow-sm h-100">
 
-                                        </td>
+                <div class="card-body">
 
-                                        <td class="px-4 py-3">
+                    <div class="d-flex justify-content-between">
 
-                                            @if ($event->status === 'resolved')
+                        <div>
+                            <p class="text-muted mb-1">
+                                Resolved
+                            </p>
 
-                                                <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                                    Resolved
-                                                </span>
+                            <h2 class="mb-0">
+                                {{ $resolvedEvents }}
+                            </h2>
+                        </div>
 
-                                            @elseif ($event->status === 'investigating')
-
-                                                <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                    Investigating
-                                                </span>
-
-                                            @else
-
-                                                <span class="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
-                                                    Unresolved
-                                                </span>
-
-                                            @endif
-
-                                        </td>
-
-                                        <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
-                                            {{ $event->detected_at?->format('d M Y, H:i:s') ?? 'N/A' }}
-                                        </td>
-
-                                    </tr>
-
-                                @empty
-
-                                    <tr>
-
-                                        <td
-                                            colspan="6"
-                                            class="px-4 py-8 text-center text-sm text-gray-500"
-                                        >
-                                            No security events have been detected yet.
-                                        </td>
-
-                                    </tr>
-
-                                @endforelse
-
-                            </tbody>
-
-                        </table>
+                        <div class="text-success fs-2">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
 
                     </div>
 
@@ -385,4 +153,225 @@
 
     </div>
 
-</x-app-layout>
+
+    <!-- Severity Statistics -->
+    <div class="row g-4 mb-4">
+
+        <!-- High -->
+        <div class="col-lg-4">
+
+            <div class="card shadow-sm border-start border-danger border-4">
+
+                <div class="card-body">
+
+                    <p class="text-muted mb-1">
+                        High Severity
+                    </p>
+
+                    <h2 class="mb-0">
+                        {{ $highSeverity }}
+                    </h2>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Medium -->
+        <div class="col-lg-4">
+
+            <div class="card shadow-sm border-start border-warning border-4">
+
+                <div class="card-body">
+
+                    <p class="text-muted mb-1">
+                        Medium Severity
+                    </p>
+
+                    <h2 class="mb-0">
+                        {{ $mediumSeverity }}
+                    </h2>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Low -->
+        <div class="col-lg-4">
+
+            <div class="card shadow-sm border-start border-success border-4">
+
+                <div class="card-body">
+
+                    <p class="text-muted mb-1">
+                        Low Severity
+                    </p>
+
+                    <h2 class="mb-0">
+                        {{ $lowSeverity }}
+                    </h2>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Recent Events -->
+    <div class="card shadow-sm">
+
+        <div class="card-header">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <h3 class="card-title mb-0">
+                    Recent Security Events
+                </h3>
+
+                <a href="{{ route('security-events.index') }}"
+                   class="btn btn-primary btn-sm">
+
+                    View All Events
+
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table table-hover mb-0">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>ID</th>
+
+                            <th>Source IP</th>
+
+                            <th>Event Type</th>
+
+                            <th>Severity</th>
+
+                            <th>Status</th>
+
+                            <th>Detected At</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        @forelse($recentEvents as $event)
+
+                            <tr>
+
+                                <td>
+                                    #{{ $event->id }}
+                                </td>
+
+                                <td>
+                                    {{ $event->source_ip }}
+                                </td>
+
+                                <td>
+                                    {{ $event->event_type }}
+                                </td>
+
+                                <td>
+
+                                    @if($event->severity === 'high')
+
+                                        <span class="badge bg-danger">
+                                            High
+                                        </span>
+
+                                    @elseif($event->severity === 'medium')
+
+                                        <span class="badge bg-warning text-dark">
+                                            Medium
+                                        </span>
+
+                                    @else
+
+                                        <span class="badge bg-success">
+                                            Low
+                                        </span>
+
+                                    @endif
+
+                                </td>
+
+
+                                <td>
+
+                                    @if($event->status === 'resolved')
+
+                                        <span class="badge bg-success">
+                                            Resolved
+                                        </span>
+
+                                    @elseif($event->status === 'investigating')
+
+                                        <span class="badge bg-warning text-dark">
+                                            Investigating
+                                        </span>
+
+                                    @else
+
+                                        <span class="badge bg-danger">
+                                            Unresolved
+                                        </span>
+
+                                    @endif
+
+                                </td>
+
+
+                                <td>
+                                    {{ $event->detected_at->format('d M Y, H:i') }}
+                                </td>
+
+                            </tr>
+
+                        @empty
+
+                            <tr>
+
+                                <td colspan="6"
+                                    class="text-center py-4">
+
+                                    No security events recorded yet.
+
+                                </td>
+
+                            </tr>
+
+                        @endforelse
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+@endsection
