@@ -15,6 +15,7 @@
         </div>
 
         <div class="text-end">
+
             <small class="text-muted d-block">
                 Dashboard status
             </small>
@@ -26,8 +27,11 @@
 
             <small class="text-muted d-block mt-1">
                 Last updated:
-                <span id="last-updated">Loading...</span>
+                <span id="last-updated">
+                    Loading...
+                </span>
             </small>
+
         </div>
 
     </div>
@@ -37,10 +41,15 @@
 
 @section('content')
 
-    <!-- Event Status -->
+    <!-- ========================================================= -->
+    <!-- EVENT STATUS -->
+    <!-- ========================================================= -->
+
     <div class="row g-4 mb-4">
 
+
         <!-- Total Events -->
+
         <div class="col-lg-3 col-md-6">
 
             <div class="card shadow-sm h-100">
@@ -50,17 +59,24 @@
                     <div class="d-flex justify-content-between">
 
                         <div>
+
                             <p class="text-muted mb-1">
                                 Total Events
                             </p>
 
-                            <h2 class="mb-0" id="total-events">
+                            <h2 class="mb-0"
+                                id="total-events">
+
                                 {{ $totalEvents }}
+
                             </h2>
+
                         </div>
 
                         <div class="text-primary fs-2">
+
                             <i class="fas fa-list"></i>
+
                         </div>
 
                     </div>
@@ -73,6 +89,7 @@
 
 
         <!-- Unresolved -->
+
         <div class="col-lg-3 col-md-6">
 
             <div class="card shadow-sm h-100">
@@ -82,17 +99,24 @@
                     <div class="d-flex justify-content-between">
 
                         <div>
+
                             <p class="text-muted mb-1">
                                 Unresolved
                             </p>
 
-                            <h2 class="mb-0" id="unresolved-events">
+                            <h2 class="mb-0"
+                                id="unresolved-events">
+
                                 {{ $unresolvedEvents }}
+
                             </h2>
+
                         </div>
 
                         <div class="text-danger fs-2">
+
                             <i class="fas fa-exclamation-triangle"></i>
+
                         </div>
 
                     </div>
@@ -105,6 +129,7 @@
 
 
         <!-- Investigating -->
+
         <div class="col-lg-3 col-md-6">
 
             <div class="card shadow-sm h-100">
@@ -114,17 +139,24 @@
                     <div class="d-flex justify-content-between">
 
                         <div>
+
                             <p class="text-muted mb-1">
                                 Investigating
                             </p>
 
-                            <h2 class="mb-0" id="investigating-events">
+                            <h2 class="mb-0"
+                                id="investigating-events">
+
                                 {{ $investigatingEvents }}
+
                             </h2>
+
                         </div>
 
                         <div class="text-warning fs-2">
+
                             <i class="fas fa-search"></i>
+
                         </div>
 
                     </div>
@@ -137,6 +169,7 @@
 
 
         <!-- Resolved -->
+
         <div class="col-lg-3 col-md-6">
 
             <div class="card shadow-sm h-100">
@@ -146,17 +179,24 @@
                     <div class="d-flex justify-content-between">
 
                         <div>
+
                             <p class="text-muted mb-1">
                                 Resolved
                             </p>
 
-                            <h2 class="mb-0" id="resolved-events">
+                            <h2 class="mb-0"
+                                id="resolved-events">
+
                                 {{ $resolvedEvents }}
+
                             </h2>
+
                         </div>
 
                         <div class="text-success fs-2">
+
                             <i class="fas fa-check-circle"></i>
+
                         </div>
 
                     </div>
@@ -170,10 +210,15 @@
     </div>
 
 
-    <!-- Severity Statistics -->
+    <!-- ========================================================= -->
+    <!-- SEVERITY STATISTICS -->
+    <!-- ========================================================= -->
+
     <div class="row g-4 mb-4">
 
+
         <!-- High -->
+
         <div class="col-lg-4">
 
             <div class="card shadow-sm border-start border-danger border-4">
@@ -184,8 +229,11 @@
                         High Severity
                     </p>
 
-                    <h2 class="mb-0" id="high-severity">
+                    <h2 class="mb-0"
+                        id="high-severity">
+
                         {{ $highSeverity }}
+
                     </h2>
 
                 </div>
@@ -196,6 +244,7 @@
 
 
         <!-- Medium -->
+
         <div class="col-lg-4">
 
             <div class="card shadow-sm border-start border-warning border-4">
@@ -206,8 +255,11 @@
                         Medium Severity
                     </p>
 
-                    <h2 class="mb-0" id="medium-severity">
+                    <h2 class="mb-0"
+                        id="medium-severity">
+
                         {{ $mediumSeverity }}
+
                     </h2>
 
                 </div>
@@ -218,6 +270,7 @@
 
 
         <!-- Low -->
+
         <div class="col-lg-4">
 
             <div class="card shadow-sm border-start border-success border-4">
@@ -228,8 +281,11 @@
                         Low Severity
                     </p>
 
-                    <h2 class="mb-0" id="low-severity">
+                    <h2 class="mb-0"
+                        id="low-severity">
+
                         {{ $lowSeverity }}
+
                     </h2>
 
                 </div>
@@ -241,7 +297,10 @@
     </div>
 
 
-    <!-- Recent Events -->
+    <!-- ========================================================= -->
+    <!-- RECENT SECURITY EVENTS -->
+    <!-- ========================================================= -->
+
     <div class="card shadow-sm">
 
         <div class="card-header">
@@ -249,11 +308,15 @@
             <div class="d-flex justify-content-between align-items-center">
 
                 <h3 class="card-title mb-0">
+
                     Recent Security Events
+
                 </h3>
 
                 <a href="{{ route('security-events.index') }}"
                    class="btn btn-primary btn-sm">
+
+                    <i class="fas fa-list me-1"></i>
 
                     View All Events
 
@@ -291,7 +354,7 @@
                     </thead>
 
 
-                    <tbody>
+                    <tbody id="recent-events-table">
 
                         @forelse($recentEvents as $event)
 
@@ -400,11 +463,8 @@
 
     /*
     |--------------------------------------------------------------------------
-    | Live Dashboard Statistics
+    | Dashboard Statistics
     |--------------------------------------------------------------------------
-    |
-    | Refresh dashboard statistics every 10 seconds.
-    |
     */
 
     function updateDashboardStats() {
@@ -418,7 +478,11 @@
         .then(response => {
 
             if (!response.ok) {
-                throw new Error('Unable to retrieve dashboard statistics.');
+
+                throw new Error(
+                    'Unable to retrieve dashboard statistics.'
+                );
+
             }
 
             return response.json();
@@ -448,17 +512,12 @@
             document.getElementById('low-severity').textContent =
                 data.lowSeverity;
 
-            const now = new Date();
-
-            document.getElementById('last-updated').textContent =
-                now.toLocaleTimeString();
-
         })
 
         .catch(error => {
 
             console.error(
-                'Dashboard update failed:',
+                'Dashboard statistics update failed:',
                 error
             );
 
@@ -469,11 +528,245 @@
 
     /*
     |--------------------------------------------------------------------------
-    | Initial Update
+    | Recent Security Events
     |--------------------------------------------------------------------------
     */
 
-    updateDashboardStats();
+    function updateRecentEvents() {
+
+        fetch('{{ route('dashboard.recent-events') }}', {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+
+        .then(response => {
+
+            if (!response.ok) {
+
+                throw new Error(
+                    'Unable to retrieve recent security events.'
+                );
+
+            }
+
+            return response.json();
+
+        })
+
+        .then(data => {
+
+            const tableBody =
+                document.getElementById('recent-events-table');
+
+            if (!data.events || data.events.length === 0) {
+
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6"
+                            class="text-center py-4">
+                            No security events recorded yet.
+                        </td>
+                    </tr>
+                `;
+
+                return;
+
+            }
+
+
+            let rows = '';
+
+
+            data.events.forEach(event => {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Severity Badge
+                |--------------------------------------------------------------------------
+                */
+
+                let severityBadge = '';
+
+                if (event.severity === 'high') {
+
+                    severityBadge = `
+                        <span class="badge bg-danger">
+                            High
+                        </span>
+                    `;
+
+                } else if (event.severity === 'medium') {
+
+                    severityBadge = `
+                        <span class="badge bg-warning text-dark">
+                            Medium
+                        </span>
+                    `;
+
+                } else {
+
+                    severityBadge = `
+                        <span class="badge bg-success">
+                            Low
+                        </span>
+                    `;
+
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Status Badge
+                |--------------------------------------------------------------------------
+                */
+
+                let statusBadge = '';
+
+                if (event.status === 'resolved') {
+
+                    statusBadge = `
+                        <span class="badge bg-success">
+                            Resolved
+                        </span>
+                    `;
+
+                } else if (event.status === 'investigating') {
+
+                    statusBadge = `
+                        <span class="badge bg-warning text-dark">
+                            Investigating
+                        </span>
+                    `;
+
+                } else {
+
+                    statusBadge = `
+                        <span class="badge bg-danger">
+                            Unresolved
+                        </span>
+                    `;
+
+                }
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Date Formatting
+                |--------------------------------------------------------------------------
+                */
+
+                const detectedAt =
+                    new Date(event.detected_at);
+
+                const formattedDate =
+                    detectedAt.toLocaleString(
+                        'en-GB',
+                        {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }
+                    );
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Build Table Row
+                |--------------------------------------------------------------------------
+                */
+
+                rows += `
+                    <tr>
+
+                        <td>
+                            #${event.id}
+                        </td>
+
+                        <td>
+                            ${event.source_ip}
+                        </td>
+
+                        <td>
+                            ${event.event_type}
+                        </td>
+
+                        <td>
+                            ${severityBadge}
+                        </td>
+
+                        <td>
+                            ${statusBadge}
+                        </td>
+
+                        <td>
+                            ${formattedDate}
+                        </td>
+
+                    </tr>
+                `;
+
+            });
+
+
+            tableBody.innerHTML = rows;
+
+        })
+
+        .catch(error => {
+
+            console.error(
+                'Recent events update failed:',
+                error
+            );
+
+        });
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Update Last Updated Time
+    |--------------------------------------------------------------------------
+    */
+
+    function updateLastUpdatedTime() {
+
+        const now = new Date();
+
+        document.getElementById('last-updated').textContent =
+            now.toLocaleTimeString();
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Initial Dashboard Update
+    |--------------------------------------------------------------------------
+    */
+
+    function updateDashboard() {
+
+        updateDashboardStats();
+
+        updateRecentEvents();
+
+        updateLastUpdatedTime();
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Initial Load
+    |--------------------------------------------------------------------------
+    */
+
+    updateDashboard();
 
 
     /*
@@ -481,12 +774,12 @@
     | Automatic Refresh
     |--------------------------------------------------------------------------
     |
-    | Update the dashboard every 10 seconds.
+    | Refresh the dashboard every 10 seconds.
     |
     */
 
     setInterval(
-        updateDashboardStats,
+        updateDashboard,
         10000
     );
 

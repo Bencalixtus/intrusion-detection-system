@@ -8,13 +8,34 @@ use App\Models\NetworkEvent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Route;
 
+
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/', function () {
     return view('welcome');
 });
 
+
+/*
+|--------------------------------------------------------------------------
+| Dashboard
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
+
+
+/*
+|--------------------------------------------------------------------------
+| Authenticated Routes
+|--------------------------------------------------------------------------
+*/
 
 Route::middleware('auth')->group(function () {
 
@@ -99,6 +120,43 @@ Route::middleware('auth')->group(function () {
 
     })->name('dashboard.stats');
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Recent Dashboard Events API
+    |--------------------------------------------------------------------------
+    |
+    | Returns the five most recent security events.
+    |
+    */
+
+    Route::get('/dashboard/recent-events', function (): JsonResponse {
+
+        $events = NetworkEvent::orderByDesc('detected_at')
+            ->orderByDesc('id')
+            ->take(5)
+            ->get([
+                'id',
+                'source_ip',
+                'event_type',
+                'severity',
+                'status',
+                'detected_at',
+            ]);
+
+        return response()->json([
+            'events' => $events,
+        ]);
+
+    })->name('dashboard.recent-events');
+
 });
+
+
+/*
+|--------------------------------------------------------------------------
+| Authentication Routes
+|--------------------------------------------------------------------------
+*/
 
 require __DIR__.'/auth.php';
