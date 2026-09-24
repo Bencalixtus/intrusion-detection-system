@@ -11,10 +11,14 @@ class NetworkEventApiController extends Controller
 {
     public function store(Request $request): JsonResponse
     {
-        // Verify the IDS API key.
-        if ($request->header('X-IDS-API-Key') !== config('ids.api_key')) {
+        $apiKey = $request->header('X-IDS-API-Key');
+
+        if (
+            empty($apiKey) ||
+            !hash_equals((string) config('services.ids.api_key'), $apiKey)
+        ) {
             return response()->json([
-                'message' => 'Unauthorized.',
+                'message' => 'Unauthorized IDS API request.',
             ], 401);
         }
 

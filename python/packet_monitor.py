@@ -13,6 +13,8 @@ LARAVEL_API_URL = "http://127.0.0.1:8002/api/network-events"
 
 LARAVEL_API_KEY = "a043c17db2f4ee83a4c70459baa86743a5094bc21dc6c72a445d4f7e15491bf7"
 
+LARAVEL_API_KEY = "IDS-SECRET-2026-NIDS"
+
 # Detection thresholds
 PORT_SCAN_THRESHOLD = 5
 REPEATED_CONNECTION_THRESHOLD = 5
@@ -65,7 +67,7 @@ def send_event_to_laravel(
     headers={
         "X-IDS-API-Key": LARAVEL_API_KEY
     },
-    timeout=5
+    timeout=30
 )
 
         if response.status_code == 201:
