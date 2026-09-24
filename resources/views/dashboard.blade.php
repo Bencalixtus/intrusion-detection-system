@@ -14,6 +14,22 @@
             </p>
         </div>
 
+        <div class="text-end">
+            <small class="text-muted d-block">
+                Dashboard status
+            </small>
+
+            <span class="badge bg-success">
+                <i class="fas fa-circle me-1"></i>
+                Monitoring
+            </span>
+
+            <small class="text-muted d-block mt-1">
+                Last updated:
+                <span id="last-updated">Loading...</span>
+            </small>
+        </div>
+
     </div>
 
 @endsection
@@ -38,7 +54,7 @@
                                 Total Events
                             </p>
 
-                            <h2 class="mb-0">
+                            <h2 class="mb-0" id="total-events">
                                 {{ $totalEvents }}
                             </h2>
                         </div>
@@ -70,7 +86,7 @@
                                 Unresolved
                             </p>
 
-                            <h2 class="mb-0">
+                            <h2 class="mb-0" id="unresolved-events">
                                 {{ $unresolvedEvents }}
                             </h2>
                         </div>
@@ -102,7 +118,7 @@
                                 Investigating
                             </p>
 
-                            <h2 class="mb-0">
+                            <h2 class="mb-0" id="investigating-events">
                                 {{ $investigatingEvents }}
                             </h2>
                         </div>
@@ -134,7 +150,7 @@
                                 Resolved
                             </p>
 
-                            <h2 class="mb-0">
+                            <h2 class="mb-0" id="resolved-events">
                                 {{ $resolvedEvents }}
                             </h2>
                         </div>
@@ -168,7 +184,7 @@
                         High Severity
                     </p>
 
-                    <h2 class="mb-0">
+                    <h2 class="mb-0" id="high-severity">
                         {{ $highSeverity }}
                     </h2>
 
@@ -190,7 +206,7 @@
                         Medium Severity
                     </p>
 
-                    <h2 class="mb-0">
+                    <h2 class="mb-0" id="medium-severity">
                         {{ $mediumSeverity }}
                     </h2>
 
@@ -212,7 +228,7 @@
                         Low Severity
                     </p>
 
-                    <h2 class="mb-0">
+                    <h2 class="mb-0" id="low-severity">
                         {{ $lowSeverity }}
                     </h2>
 
@@ -374,4 +390,106 @@
 
     </div>
 
+
 @endsection
+
+
+@section('js')
+
+<script>
+
+    /*
+    |--------------------------------------------------------------------------
+    | Live Dashboard Statistics
+    |--------------------------------------------------------------------------
+    |
+    | Refresh dashboard statistics every 10 seconds.
+    |
+    */
+
+    function updateDashboardStats() {
+
+        fetch('{{ route('dashboard.stats') }}', {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+
+        .then(response => {
+
+            if (!response.ok) {
+                throw new Error('Unable to retrieve dashboard statistics.');
+            }
+
+            return response.json();
+
+        })
+
+        .then(data => {
+
+            document.getElementById('total-events').textContent =
+                data.totalEvents;
+
+            document.getElementById('unresolved-events').textContent =
+                data.unresolvedEvents;
+
+            document.getElementById('investigating-events').textContent =
+                data.investigatingEvents;
+
+            document.getElementById('resolved-events').textContent =
+                data.resolvedEvents;
+
+            document.getElementById('high-severity').textContent =
+                data.highSeverity;
+
+            document.getElementById('medium-severity').textContent =
+                data.mediumSeverity;
+
+            document.getElementById('low-severity').textContent =
+                data.lowSeverity;
+
+            const now = new Date();
+
+            document.getElementById('last-updated').textContent =
+                now.toLocaleTimeString();
+
+        })
+
+        .catch(error => {
+
+            console.error(
+                'Dashboard update failed:',
+                error
+            );
+
+        });
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Initial Update
+    |--------------------------------------------------------------------------
+    */
+
+    updateDashboardStats();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Automatic Refresh
+    |--------------------------------------------------------------------------
+    |
+    | Update the dashboard every 10 seconds.
+    |
+    */
+
+    setInterval(
+        updateDashboardStats,
+        10000
+    );
+
+</script>
+
+@stop
