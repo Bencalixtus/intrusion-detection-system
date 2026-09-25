@@ -1,4 +1,4 @@
-from scapy.all import sniff, IP, TCP
+from scapy.all import sniff, IP, TCP, ICMP
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
 import os
@@ -14,7 +14,6 @@ TARGET_IP = "10.55.241.109"
 LARAVEL_API_URL = "http://127.0.0.1:8002/api/network-events"
 
 # Read the API key from the environment.
-# The secret is NOT stored directly in this file.
 LARAVEL_API_KEY = os.getenv("IDS_API_KEY")
 
 
@@ -22,24 +21,22 @@ LARAVEL_API_KEY = os.getenv("IDS_API_KEY")
 # DETECTION THRESHOLDS
 # =================================================
 
-# Port scan:
-# Trigger when a source contacts 5 or more unique
-# destination ports on the monitored machine.
+# Rule 1: Port scan
 PORT_SCAN_THRESHOLD = 5
 
-# Repeated connections:
-# Trigger when a source makes 5 or more connection
-# attempts within the configured time window.
+# Rule 2: Repeated TCP connections
 REPEATED_CONNECTION_THRESHOLD = 5
-
 REPEATED_CONNECTION_WINDOW = 30
+
+# Rule 4: Repeated ICMP echo requests
+ICMP_THRESHOLD = 5
+ICMP_WINDOW = 30
 
 
 # =================================================
 # SUSPICIOUS PORTS
 # =================================================
 
-# Commonly targeted or commonly exposed TCP ports.
 SUSPICIOUS_PORTS = {
     21,    # FTP
     22,    # SSH
@@ -60,16 +57,20 @@ SUSPICIOUS_PORTS = {
 # DETECTION STORAGE
 # =================================================
 
-# Unique destination ports contacted by each source IP.
+# Rule 1
 source_ports = defaultdict(set)
 
-# Connection attempt timestamps for each source IP.
+# Rule 2
 connection_attempts = defaultdict(deque)
 
-# Prevent duplicate alerts during the same monitor session.
+# Rule 4
+icmp_attempts = defaultdict(deque)
+
+# Prevent duplicate alerts during one monitor session.
 reported_port_scans = set()
 reported_repeated_connections = set()
 reported_suspicious_ports = set()
+reported_icmp_activity = set()
 
 
 # =================================================
@@ -126,26 +127,15 @@ def send_event_to_laravel(
         else:
 
             print()
-            print(
-                "✗ Laravel rejected security event."
-            )
-
-            print(
-                f"HTTP status: {response.status_code}"
-            )
-
-            print(
-                f"Response: {response.text}"
-            )
+            print("✗ Laravel rejected security event.")
+            print(f"HTTP status: {response.status_code}")
+            print(f"Response: {response.text}")
 
     except requests.RequestException as error:
 
         print()
         print("✗ Failed to send security event to Laravel.")
-
-        print(
-            f"Error: {error}"
-        )
+        print(f"Error: {error}")
 
 
 # =================================================
@@ -155,43 +145,117 @@ def send_event_to_laravel(
 def process_packet(packet):
 
     # -------------------------------------------------
-    # BASIC PACKET VALIDATION
+    # BASIC IP VALIDATION
     # -------------------------------------------------
 
     if not packet.haslayer(IP):
         return
 
-    if not packet.haslayer(TCP):
-        return
-
-
     ip = packet[IP]
-    tcp = packet[TCP]
-
 
     source_ip = ip.src
     destination_ip = ip.dst
+
+    # Only monitor traffic directed at our target.
+    if destination_ip != TARGET_IP:
+        return
+
+    now = datetime.now()
+
+
+    # =================================================
+    # RULE 4: ICMP / PING ACTIVITY
+    # =================================================
+
+    if packet.haslayer(ICMP):
+
+        icmp = packet[ICMP]
+
+        # ICMP type 8 = Echo Request
+        if icmp.type == 8:
+
+            icmp_attempts[source_ip].append(now)
+
+            cutoff_time = now - timedelta(
+                seconds=ICMP_WINDOW
+            )
+
+            while (
+                icmp_attempts[source_ip]
+                and icmp_attempts[source_ip][0] < cutoff_time
+            ):
+                icmp_attempts[source_ip].popleft()
+
+            icmp_count = len(
+                icmp_attempts[source_ip]
+            )
+
+            print(
+                f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] "
+                f"{source_ip} -> {destination_ip} "
+                f"| ICMP Echo Request "
+                f"| Attempts in {ICMP_WINDOW}s: "
+                f"{icmp_count}"
+            )
+
+            if icmp_count >= ICMP_THRESHOLD:
+
+                if source_ip not in reported_icmp_activity:
+
+                    print()
+                    print("=" * 55)
+                    print("⚠️ REPEATED ICMP/PING ACTIVITY DETECTED")
+                    print(
+                        f"Source IP: {source_ip}"
+                    )
+                    print(
+                        f"Target IP: {TARGET_IP}"
+                    )
+                    print(
+                        f"ICMP requests within "
+                        f"{ICMP_WINDOW} seconds: "
+                        f"{icmp_count}"
+                    )
+                    print("=" * 55)
+
+                    send_event_to_laravel(
+                        source_ip=source_ip,
+                        destination_ip=TARGET_IP,
+                        source_port=None,
+                        destination_port=None,
+                        protocol="ICMP",
+                        event_type="Repeated ICMP Activity",
+                        severity="medium",
+                        description=(
+                            f"Repeated ICMP Echo Requests detected. "
+                            f"{icmp_count} requests were observed "
+                            f"within {ICMP_WINDOW} seconds."
+                        ),
+                    )
+
+                    reported_icmp_activity.add(
+                        source_ip
+                    )
+
+        return
+
+
+    # =================================================
+    # TCP PROCESSING
+    # =================================================
+
+    if not packet.haslayer(TCP):
+        return
+
+    tcp = packet[TCP]
 
     source_port = tcp.sport
     destination_port = tcp.dport
 
 
     # -------------------------------------------------
-    # ONLY MONITOR TRAFFIC TO OUR TARGET
-    # -------------------------------------------------
-
-    if destination_ip != TARGET_IP:
-        return
-
-
-    # -------------------------------------------------
     # ONLY PROCESS TCP SYN CONNECTION ATTEMPTS
     # -------------------------------------------------
-
-    # TCP SYN flag = 0x02
-    #
-    # This means we focus on connection attempts rather
-    # than every TCP packet in the communication.
 
     if not (tcp.flags & 0x02):
         return
@@ -201,15 +265,17 @@ def process_packet(packet):
     # UPDATE CONNECTION TRACKING
     # -------------------------------------------------
 
-    now = datetime.now()
+    source_ports[source_ip].add(
+        destination_port
+    )
 
-    source_ports[source_ip].add(destination_port)
-
-    connection_attempts[source_ip].append(now)
+    connection_attempts[source_ip].append(
+        now
+    )
 
 
     # -------------------------------------------------
-    # REMOVE CONNECTION ATTEMPTS OLDER THAN 30 SECONDS
+    # REMOVE OLD CONNECTION ATTEMPTS
     # -------------------------------------------------
 
     cutoff_time = now - timedelta(
@@ -220,12 +286,11 @@ def process_packet(packet):
         connection_attempts[source_ip]
         and connection_attempts[source_ip][0] < cutoff_time
     ):
-
         connection_attempts[source_ip].popleft()
 
 
     # -------------------------------------------------
-    # CURRENT CONNECTION STATISTICS
+    # CURRENT TCP STATISTICS
     # -------------------------------------------------
 
     unique_ports = len(
@@ -238,7 +303,7 @@ def process_packet(packet):
 
 
     # -------------------------------------------------
-    # DISPLAY MONITORED TRAFFIC
+    # DISPLAY MONITORED TCP TRAFFIC
     # -------------------------------------------------
 
     print(
@@ -287,7 +352,9 @@ def process_packet(packet):
                 ),
             )
 
-            reported_port_scans.add(source_ip)
+            reported_port_scans.add(
+                source_ip
+            )
 
 
     # =================================================
@@ -329,7 +396,9 @@ def process_packet(packet):
                 ),
             )
 
-            reported_repeated_connections.add(source_ip)
+            reported_repeated_connections.add(
+                source_ip
+            )
 
 
     # =================================================
@@ -416,6 +485,12 @@ if __name__ == "__main__":
         f"{len(SUSPICIOUS_PORTS)}"
     )
 
+    print(
+        f"ICMP threshold: "
+        f"{ICMP_THRESHOLD} requests in "
+        f"{ICMP_WINDOW} seconds"
+    )
+
     print()
 
 
@@ -444,7 +519,7 @@ if __name__ == "__main__":
     print()
 
     print(
-        "Monitoring TCP SYN connection attempts..."
+        "Monitoring TCP SYN and ICMP Echo Requests..."
     )
 
     print(
@@ -461,7 +536,11 @@ if __name__ == "__main__":
     try:
 
         sniff(
-            filter=f"tcp and dst host {TARGET_IP}",
+            filter=(
+                f"(tcp and dst host {TARGET_IP}) "
+                f"or "
+                f"(icmp and dst host {TARGET_IP})"
+            ),
             prn=process_packet,
             store=False,
         )
