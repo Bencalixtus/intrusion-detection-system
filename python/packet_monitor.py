@@ -13,8 +13,8 @@ TARGET_IP = "10.55.241.109"
 
 LARAVEL_API_URL = "http://127.0.0.1:8002/api/network-events"
 
-# Read the API key from the environment instead of
-# storing the secret directly in this Python file.
+# Read the API key from the environment.
+# The secret is NOT stored directly in this file.
 LARAVEL_API_KEY = os.getenv("IDS_API_KEY")
 
 
@@ -22,35 +22,54 @@ LARAVEL_API_KEY = os.getenv("IDS_API_KEY")
 # DETECTION THRESHOLDS
 # =================================================
 
+# Port scan:
+# Trigger when a source contacts 5 or more unique
+# destination ports on the monitored machine.
 PORT_SCAN_THRESHOLD = 5
 
+# Repeated connections:
+# Trigger when a source makes 5 or more connection
+# attempts within the configured time window.
 REPEATED_CONNECTION_THRESHOLD = 5
 
 REPEATED_CONNECTION_WINDOW = 30
 
 
 # =================================================
+# SUSPICIOUS PORTS
+# =================================================
+
+# Commonly targeted or commonly exposed TCP ports.
+SUSPICIOUS_PORTS = {
+    21,    # FTP
+    22,    # SSH
+    23,    # Telnet
+    25,    # SMTP
+    53,    # DNS
+    80,    # HTTP
+    110,   # POP3
+    139,   # NetBIOS
+    143,   # IMAP
+    443,   # HTTPS
+    445,   # SMB
+    3389,  # RDP
+}
+
+
+# =================================================
 # DETECTION STORAGE
 # =================================================
 
-# Stores unique destination ports contacted
-# by each source IP.
+# Unique destination ports contacted by each source IP.
 source_ports = defaultdict(set)
 
-
-# Stores connection attempt timestamps
-# for each source IP.
+# Connection attempt timestamps for each source IP.
 connection_attempts = defaultdict(deque)
 
-
-# Prevents the same port-scan source from
-# generating the same alert repeatedly.
+# Prevent duplicate alerts during the same monitor session.
 reported_port_scans = set()
-
-
-# Prevents the same repeated-connection source
-# from generating the same alert repeatedly.
 reported_repeated_connections = set()
+reported_suspicious_ports = set()
 
 
 # =================================================
@@ -62,55 +81,71 @@ def send_event_to_laravel(
     destination_ip,
     source_port,
     destination_port,
+    protocol,
     event_type,
     severity,
-    description
+    description,
 ):
+    """
+    Send a detected security event to the Laravel IDS API.
+    """
 
-    data = {
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "X-IDS-API-Key": LARAVEL_API_KEY,
+    }
+
+    payload = {
         "source_ip": source_ip,
         "destination_ip": destination_ip,
         "source_port": source_port,
         "destination_port": destination_port,
-        "protocol": "TCP",
+        "protocol": protocol,
         "event_type": event_type,
         "severity": severity,
         "description": description,
         "status": "unresolved",
+        "detected_at": datetime.now().isoformat(),
     }
 
     try:
 
         response = requests.post(
             LARAVEL_API_URL,
-            json=data,
-            headers={
-                "X-IDS-API-Key": LARAVEL_API_KEY
-            },
-            timeout=30
+            json=payload,
+            headers=headers,
+            timeout=30,
         )
 
         if response.status_code == 201:
 
-            print(
-                "✓ Security event sent to Laravel successfully."
-            )
+            print()
+            print("✓ Security event sent to Laravel successfully.")
 
         else:
 
+            print()
             print(
-                f"⚠ Laravel API returned "
-                f"status {response.status_code}"
+                "✗ Laravel rejected security event."
             )
 
-            print(response.text)
+            print(
+                f"HTTP status: {response.status_code}"
+            )
+
+            print(
+                f"Response: {response.text}"
+            )
 
     except requests.RequestException as error:
 
         print()
-        print("⚠ Could not send event to Laravel.")
-        print(f"Reason: {error}")
-        print()
+        print("✗ Failed to send security event to Laravel.")
+
+        print(
+            f"Error: {error}"
+        )
 
 
 # =================================================
@@ -120,33 +155,32 @@ def send_event_to_laravel(
 def process_packet(packet):
 
     # -------------------------------------------------
-    # ONLY PROCESS IPv4 TCP PACKETS
+    # BASIC PACKET VALIDATION
     # -------------------------------------------------
 
-    if not packet.haslayer(IP) or not packet.haslayer(TCP):
+    if not packet.haslayer(IP):
+        return
 
+    if not packet.haslayer(TCP):
         return
 
 
-    # -------------------------------------------------
-    # EXTRACT NETWORK INFORMATION
-    # -------------------------------------------------
+    ip = packet[IP]
+    tcp = packet[TCP]
 
-    source_ip = packet[IP].src
 
-    destination_ip = packet[IP].dst
+    source_ip = ip.src
+    destination_ip = ip.dst
 
-    source_port = packet[TCP].sport
-
-    destination_port = packet[TCP].dport
+    source_port = tcp.sport
+    destination_port = tcp.dport
 
 
     # -------------------------------------------------
-    # ONLY MONITOR TRAFFIC GOING TO THIS COMPUTER
+    # ONLY MONITOR TRAFFIC TO OUR TARGET
     # -------------------------------------------------
 
     if destination_ip != TARGET_IP:
-
         return
 
 
@@ -154,301 +188,287 @@ def process_packet(packet):
     # ONLY PROCESS TCP SYN CONNECTION ATTEMPTS
     # -------------------------------------------------
 
-    tcp_flags = packet[TCP].flags
+    # TCP SYN flag = 0x02
+    #
+    # This means we focus on connection attempts rather
+    # than every TCP packet in the communication.
 
-    if not (tcp_flags & 0x02):
-
+    if not (tcp.flags & 0x02):
         return
 
 
+    # -------------------------------------------------
+    # UPDATE CONNECTION TRACKING
+    # -------------------------------------------------
+
     now = datetime.now()
 
+    source_ports[source_ip].add(destination_port)
 
-    # =================================================
-    # PORT SCAN TRACKING
-    # =================================================
-
-    source_ports[source_ip].add(
-        destination_port
-    )
-
-    port_count = len(
-        source_ports[source_ip]
-    )
+    connection_attempts[source_ip].append(now)
 
 
-    # =================================================
-    # REPEATED CONNECTION TRACKING
-    # =================================================
-
-    connection_attempts[source_ip].append(
-        now
-    )
-
+    # -------------------------------------------------
+    # REMOVE CONNECTION ATTEMPTS OLDER THAN 30 SECONDS
+    # -------------------------------------------------
 
     cutoff_time = now - timedelta(
         seconds=REPEATED_CONNECTION_WINDOW
     )
 
-
     while (
         connection_attempts[source_ip]
-        and
-        connection_attempts[source_ip][0] < cutoff_time
+        and connection_attempts[source_ip][0] < cutoff_time
     ):
 
         connection_attempts[source_ip].popleft()
 
 
-    connection_count = len(
+    # -------------------------------------------------
+    # CURRENT CONNECTION STATISTICS
+    # -------------------------------------------------
+
+    unique_ports = len(
+        source_ports[source_ip]
+    )
+
+    attempts_in_window = len(
         connection_attempts[source_ip]
     )
 
 
-    # =================================================
+    # -------------------------------------------------
     # DISPLAY MONITORED TRAFFIC
-    # =================================================
+    # -------------------------------------------------
 
     print(
         f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] "
         f"{source_ip} -> "
-        f"{destination_ip}:{destination_port} "
-        f"| Unique ports: {port_count} "
-        f"| Attempts in "
-        f"{REPEATED_CONNECTION_WINDOW}s: "
-        f"{connection_count}"
+        f"{destination_ip}:{destination_port} | "
+        f"Unique ports: {unique_ports} | "
+        f"Attempts in 30s: {attempts_in_window}"
     )
 
 
     # =================================================
-    # PORT SCAN DETECTION
+    # RULE 1: PORT SCAN DETECTION
     # =================================================
 
-    if (
-        port_count >= PORT_SCAN_THRESHOLD
-        and
-        source_ip not in reported_port_scans
-    ):
+    if unique_ports >= PORT_SCAN_THRESHOLD:
 
-        reported_port_scans.add(
-            source_ip
-        )
+        if source_ip not in reported_port_scans:
 
+            print()
+            print("=" * 55)
+            print("⚠️ POSSIBLE PORT SCAN DETECTED")
+            print(
+                f"Source IP: {source_ip}"
+            )
+            print(
+                f"Target IP: {TARGET_IP}"
+            )
+            print(
+                f"Unique ports contacted: {unique_ports}"
+            )
+            print("=" * 55)
 
-        print()
-
-        print("=" * 55)
-
-        print(
-            "⚠️ POSSIBLE PORT SCAN DETECTED"
-        )
-
-        print(
-            f"Source IP: {source_ip}"
-        )
-
-        print(
-            f"Target IP: {TARGET_IP}"
-        )
-
-        print(
-            f"Unique ports contacted: {port_count}"
-        )
-
-        print("=" * 55)
-
-        print()
-
-
-        send_event_to_laravel(
-
-            source_ip=source_ip,
-
-            destination_ip=destination_ip,
-
-            source_port=source_port,
-
-            destination_port=destination_port,
-
-            event_type="Port Scan",
-
-            severity="high",
-
-            description=(
-                f"Possible port scan detected. "
-                f"Source contacted {port_count} "
-                f"unique destination ports."
+            send_event_to_laravel(
+                source_ip=source_ip,
+                destination_ip=TARGET_IP,
+                source_port=source_port,
+                destination_port=destination_port,
+                protocol="TCP",
+                event_type="Port Scan",
+                severity="high",
+                description=(
+                    f"Possible port scan detected. "
+                    f"Source contacted "
+                    f"{unique_ports} unique destination ports."
+                ),
             )
 
-        )
+            reported_port_scans.add(source_ip)
 
 
     # =================================================
-    # REPEATED CONNECTION DETECTION
+    # RULE 2: REPEATED CONNECTION DETECTION
     # =================================================
 
-    if (
-        connection_count >= REPEATED_CONNECTION_THRESHOLD
-        and
-        source_ip not in reported_repeated_connections
-    ):
+    if attempts_in_window >= REPEATED_CONNECTION_THRESHOLD:
 
-        reported_repeated_connections.add(
-            source_ip
-        )
+        if source_ip not in reported_repeated_connections:
 
+            print()
+            print("=" * 55)
+            print("⚠️ REPEATED CONNECTION ATTEMPTS DETECTED")
+            print(
+                f"Source IP: {source_ip}"
+            )
+            print(
+                f"Target IP: {TARGET_IP}"
+            )
+            print(
+                f"Connection attempts within "
+                f"{REPEATED_CONNECTION_WINDOW} seconds: "
+                f"{attempts_in_window}"
+            )
+            print("=" * 55)
 
-        print()
-
-        print("=" * 55)
-
-        print(
-            "⚠️ REPEATED CONNECTION ATTEMPTS DETECTED"
-        )
-
-        print(
-            f"Source IP: {source_ip}"
-        )
-
-        print(
-            f"Target IP: {TARGET_IP}"
-        )
-
-        print(
-            f"Connection attempts within "
-            f"{REPEATED_CONNECTION_WINDOW} seconds: "
-            f"{connection_count}"
-        )
-
-        print("=" * 55)
-
-        print()
-
-
-        send_event_to_laravel(
-
-            source_ip=source_ip,
-
-            destination_ip=destination_ip,
-
-            source_port=source_port,
-
-            destination_port=destination_port,
-
-            event_type="Repeated Connection",
-
-            severity="medium",
-
-            description=(
-                f"Repeated connection attempts detected. "
-                f"Source made {connection_count} "
-                f"connection attempts within "
-                f"{REPEATED_CONNECTION_WINDOW} seconds."
+            send_event_to_laravel(
+                source_ip=source_ip,
+                destination_ip=TARGET_IP,
+                source_port=source_port,
+                destination_port=destination_port,
+                protocol="TCP",
+                event_type="Repeated Connection",
+                severity="medium",
+                description=(
+                    f"Repeated TCP connection attempts detected. "
+                    f"{attempts_in_window} attempts were observed "
+                    f"within {REPEATED_CONNECTION_WINDOW} seconds."
+                ),
             )
 
+            reported_repeated_connections.add(source_ip)
+
+
+    # =================================================
+    # RULE 3: SUSPICIOUS PORT ACCESS
+    # =================================================
+
+    if destination_port in SUSPICIOUS_PORTS:
+
+        suspicious_key = (
+            source_ip,
+            destination_port
         )
+
+        if suspicious_key not in reported_suspicious_ports:
+
+            print()
+            print("=" * 55)
+            print("⚠️ SUSPICIOUS PORT ACCESS DETECTED")
+            print(
+                f"Source IP: {source_ip}"
+            )
+            print(
+                f"Target IP: {TARGET_IP}"
+            )
+            print(
+                f"Destination port: {destination_port}"
+            )
+            print("=" * 55)
+
+            send_event_to_laravel(
+                source_ip=source_ip,
+                destination_ip=TARGET_IP,
+                source_port=source_port,
+                destination_port=destination_port,
+                protocol="TCP",
+                event_type="Suspicious Port Access",
+                severity="medium",
+                description=(
+                    f"TCP connection attempt detected on "
+                    f"commonly targeted port "
+                    f"{destination_port}."
+                ),
+            )
+
+            reported_suspicious_ports.add(
+                suspicious_key
+            )
 
 
 # =================================================
-# START IDS MONITOR
+# PROGRAM STARTUP
 # =================================================
 
-print(
-    "=========================================="
-)
+if __name__ == "__main__":
 
-print(
-    " Network Intrusion Detection System"
-)
+    print("=" * 55)
+    print(" Network Intrusion Detection System")
+    print(" Packet Monitor")
+    print("=" * 55)
 
-print(
-    " Packet Monitor"
-)
-
-print(
-    "=========================================="
-)
-
-print()
-
-
-print(
-    f"Monitoring target: {TARGET_IP}"
-)
-
-print(
-    f"Laravel API: {LARAVEL_API_URL}"
-)
-
-print(
-    f"Port scan threshold: "
-    f"{PORT_SCAN_THRESHOLD} unique ports"
-)
-
-print(
-    f"Repeated connection threshold: "
-    f"{REPEATED_CONNECTION_THRESHOLD} attempts "
-    f"in {REPEATED_CONNECTION_WINDOW} seconds"
-)
-
-print()
-
-
-# -------------------------------------------------
-# CHECK API KEY
-# -------------------------------------------------
-
-if not LARAVEL_API_KEY:
-
+    print()
     print(
-        "⚠ IDS_API_KEY environment variable "
-        "is not set."
+        f"Monitoring target: {TARGET_IP}"
     )
 
     print(
-        "The monitor cannot send events to Laravel."
+        f"Laravel API: {LARAVEL_API_URL}"
+    )
+
+    print(
+        f"Port scan threshold: "
+        f"{PORT_SCAN_THRESHOLD} unique ports"
+    )
+
+    print(
+        f"Repeated connection threshold: "
+        f"{REPEATED_CONNECTION_THRESHOLD} "
+        f"attempts in "
+        f"{REPEATED_CONNECTION_WINDOW} seconds"
+    )
+
+    print(
+        f"Suspicious ports monitored: "
+        f"{len(SUSPICIOUS_PORTS)}"
     )
 
     print()
 
-    raise SystemExit(1)
+
+    # -------------------------------------------------
+    # CHECK API KEY
+    # -------------------------------------------------
+
+    if not LARAVEL_API_KEY:
+
+        print(
+            "ERROR: IDS_API_KEY environment variable "
+            "is not set."
+        )
+
+        print(
+            "Set the API key before starting the monitor."
+        )
+
+        raise SystemExit(1)
 
 
-print(
-    "Laravel API key: loaded"
-)
-
-print()
-
-
-print(
-    "Monitoring TCP SYN connection attempts..."
-)
-
-print(
-    "Press Ctrl+C to stop."
-)
-
-print()
-
-
-# =================================================
-# START PACKET CAPTURE
-# =================================================
-
-try:
-
-    sniff(
-        filter=f"tcp and dst host {TARGET_IP}",
-        prn=process_packet,
-        store=False
+    print(
+        "Laravel API key: loaded"
     )
-
-
-except KeyboardInterrupt:
 
     print()
 
     print(
-        "Packet monitoring stopped."
+        "Monitoring TCP SYN connection attempts..."
     )
+
+    print(
+        "Press Ctrl+C to stop."
+    )
+
+    print()
+
+
+    # -------------------------------------------------
+    # START PACKET CAPTURE
+    # -------------------------------------------------
+
+    try:
+
+        sniff(
+            filter=f"tcp and dst host {TARGET_IP}",
+            prn=process_packet,
+            store=False,
+        )
+
+    except KeyboardInterrupt:
+
+        print()
+        print(
+            "Network IDS monitor stopped."
+        )
