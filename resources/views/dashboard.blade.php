@@ -41,6 +41,51 @@
 
 @section('content')
 
+    <!-- LIVE SECURITY ALERT -->
+<div id="security-alert"
+     class="alert alert-danger shadow-sm d-none"
+     role="alert">
+
+    <div class="d-flex align-items-start">
+
+        <div class="me-3 fs-4">
+            <i class="fas fa-shield-alt"></i>
+        </div>
+
+        <div class="flex-grow-1">
+
+            <h5 class="alert-heading mb-1">
+                Security Alert
+            </h5>
+
+            <div id="security-alert-message">
+                High-severity security event detected.
+            </div>
+
+            <small class="d-block mt-2">
+                <strong>Source:</strong>
+                <span id="alert-source-ip"></span>
+
+                &nbsp; | &nbsp;
+
+                <strong>Event:</strong>
+                <span id="alert-event-type"></span>
+            </small>
+
+        </div>
+
+        <div class="ms-3">
+            <a href="{{ route('security-events.index') }}"
+               class="btn btn-danger btn-sm">
+                <i class="fas fa-eye me-1"></i>
+                View Events
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
     <!-- ========================================================= -->
     <!-- EVENT STATUS -->
     <!-- ========================================================= -->
@@ -934,6 +979,120 @@
 
 
         /*
+|--------------------------------------------------------------------------
+| Live Security Alert
+|--------------------------------------------------------------------------
+*/
+
+let latestAlertId = null;
+
+function updateSecurityAlert() {
+
+    fetch('{{ route('dashboard.latest-alert') }}', {
+
+        headers: {
+            'Accept': 'application/json'
+        }
+
+    })
+
+    .then(response => {
+
+        if (!response.ok) {
+
+            throw new Error(
+                'Unable to retrieve latest security alert.'
+            );
+
+        }
+
+        return response.json();
+
+    })
+
+    .then(data => {
+
+        const alertBox =
+            document.getElementById('security-alert');
+
+        const alertMessage =
+            document.getElementById('security-alert-message');
+
+        const sourceIp =
+            document.getElementById('alert-source-ip');
+
+        const eventType =
+            document.getElementById('alert-event-type');
+
+
+        if (!data.event) {
+
+            alertBox.classList.add('d-none');
+
+            latestAlertId = null;
+
+            return;
+
+        }
+
+
+        const event = data.event;
+
+
+        sourceIp.textContent =
+            event.source_ip;
+
+        eventType.textContent =
+            event.event_type;
+
+        alertMessage.textContent =
+            event.description ||
+            'A high-severity security event has been detected.';
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Show alert
+        |--------------------------------------------------------------------------
+        */
+
+        alertBox.classList.remove('d-none');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Detect newly discovered alert
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            latestAlertId !== null &&
+            latestAlertId !== event.id
+        ) {
+
+            console.log(
+                'New security alert detected:',
+                event.id
+            );
+
+        }
+
+        latestAlertId = event.id;
+
+    })
+
+    .catch(error => {
+
+        console.error(
+            'Security alert update failed:',
+            error
+        );
+
+    });
+
+}
+
+        /*
         |--------------------------------------------------------------------------
         | Update Dashboard
         |--------------------------------------------------------------------------
@@ -941,14 +1100,15 @@
 
         function updateDashboard() {
 
-            updateDashboardStats();
+             updateDashboardStats();
 
-            updateRecentEvents();
+             updateRecentEvents();
+
+             updateSecurityAlert();
 
             updateLastUpdatedTime();
 
-        }
-
+}
 
         /*
         |--------------------------------------------------------------------------

@@ -150,6 +150,37 @@ Route::middleware('auth')->group(function () {
 
     })->name('dashboard.recent-events');
 
+    /*
+|--------------------------------------------------------------------------
+| Latest Security Alert API
+|--------------------------------------------------------------------------
+|
+| Returns the latest high-severity unresolved security event.
+|
+*/
+
+Route::get('/dashboard/latest-alert', function (): JsonResponse {
+
+    $event = NetworkEvent::where('severity', 'high')
+        ->where('status', 'unresolved')
+        ->orderByDesc('detected_at')
+        ->orderByDesc('id')
+        ->first([
+            'id',
+            'source_ip',
+            'destination_ip',
+            'event_type',
+            'severity',
+            'description',
+            'detected_at',
+        ]);
+
+    return response()->json([
+        'event' => $event,
+    ]);
+
+})->name('dashboard.latest-alert');
+
 });
 
 
