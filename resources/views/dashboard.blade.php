@@ -47,7 +47,6 @@
 
     <div class="row g-4 mb-4">
 
-
         <!-- Total Events -->
 
         <div class="col-lg-3 col-md-6">
@@ -64,19 +63,14 @@
                                 Total Events
                             </p>
 
-                            <h2 class="mb-0"
-                                id="total-events">
-
+                            <h2 class="mb-0" id="total-events">
                                 {{ $totalEvents }}
-
                             </h2>
 
                         </div>
 
                         <div class="text-primary fs-2">
-
                             <i class="fas fa-list"></i>
-
                         </div>
 
                     </div>
@@ -104,19 +98,14 @@
                                 Unresolved
                             </p>
 
-                            <h2 class="mb-0"
-                                id="unresolved-events">
-
+                            <h2 class="mb-0" id="unresolved-events">
                                 {{ $unresolvedEvents }}
-
                             </h2>
 
                         </div>
 
                         <div class="text-danger fs-2">
-
                             <i class="fas fa-exclamation-triangle"></i>
-
                         </div>
 
                     </div>
@@ -144,19 +133,14 @@
                                 Investigating
                             </p>
 
-                            <h2 class="mb-0"
-                                id="investigating-events">
-
+                            <h2 class="mb-0" id="investigating-events">
                                 {{ $investigatingEvents }}
-
                             </h2>
 
                         </div>
 
                         <div class="text-warning fs-2">
-
                             <i class="fas fa-search"></i>
-
                         </div>
 
                     </div>
@@ -184,19 +168,14 @@
                                 Resolved
                             </p>
 
-                            <h2 class="mb-0"
-                                id="resolved-events">
-
+                            <h2 class="mb-0" id="resolved-events">
                                 {{ $resolvedEvents }}
-
                             </h2>
 
                         </div>
 
                         <div class="text-success fs-2">
-
                             <i class="fas fa-check-circle"></i>
-
                         </div>
 
                     </div>
@@ -216,7 +195,6 @@
 
     <div class="row g-4 mb-4">
 
-
         <!-- High -->
 
         <div class="col-lg-4">
@@ -229,11 +207,8 @@
                         High Severity
                     </p>
 
-                    <h2 class="mb-0"
-                        id="high-severity">
-
+                    <h2 class="mb-0" id="high-severity">
                         {{ $highSeverity }}
-
                     </h2>
 
                 </div>
@@ -255,11 +230,8 @@
                         Medium Severity
                     </p>
 
-                    <h2 class="mb-0"
-                        id="medium-severity">
-
+                    <h2 class="mb-0" id="medium-severity">
                         {{ $mediumSeverity }}
-
                     </h2>
 
                 </div>
@@ -281,12 +253,48 @@
                         Low Severity
                     </p>
 
-                    <h2 class="mb-0"
-                        id="low-severity">
-
+                    <h2 class="mb-0" id="low-severity">
                         {{ $lowSeverity }}
-
                     </h2>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================= -->
+    <!-- SEVERITY DISTRIBUTION CHART -->
+    <!-- ========================================================= -->
+
+    <div class="row g-4 mb-4">
+
+        <div class="col-12">
+
+            <div class="card shadow-sm">
+
+                <div class="card-header">
+
+                    <h3 class="card-title mb-0">
+
+                        <i class="fas fa-chart-bar me-2"></i>
+
+                        Security Events by Severity
+
+                    </h3>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div style="height: 300px;">
+
+                        <canvas id="severity-chart"></canvas>
+
+                    </div>
 
                 </div>
 
@@ -308,9 +316,7 @@
             <div class="d-flex justify-content-between align-items-center">
 
                 <h3 class="card-title mb-0">
-
                     Recent Security Events
-
                 </h3>
 
                 <a href="{{ route('security-events.index') }}"
@@ -453,336 +459,520 @@
 
     </div>
 
-
 @endsection
 
 
 @section('js')
 
-<script>
+    <!-- Chart.js -->
 
-    /*
-    |--------------------------------------------------------------------------
-    | Dashboard Statistics
-    |--------------------------------------------------------------------------
-    */
-
-    function updateDashboardStats() {
-
-        fetch('{{ route('dashboard.stats') }}', {
-            headers: {
-                'Accept': 'application/json'
-            }
-        })
-
-        .then(response => {
-
-            if (!response.ok) {
-
-                throw new Error(
-                    'Unable to retrieve dashboard statistics.'
-                );
-
-            }
-
-            return response.json();
-
-        })
-
-        .then(data => {
-
-            document.getElementById('total-events').textContent =
-                data.totalEvents;
-
-            document.getElementById('unresolved-events').textContent =
-                data.unresolvedEvents;
-
-            document.getElementById('investigating-events').textContent =
-                data.investigatingEvents;
-
-            document.getElementById('resolved-events').textContent =
-                data.resolvedEvents;
-
-            document.getElementById('high-severity').textContent =
-                data.highSeverity;
-
-            document.getElementById('medium-severity').textContent =
-                data.mediumSeverity;
-
-            document.getElementById('low-severity').textContent =
-                data.lowSeverity;
-
-        })
-
-        .catch(error => {
-
-            console.error(
-                'Dashboard statistics update failed:',
-                error
-            );
-
-        });
-
-    }
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Recent Security Events
-    |--------------------------------------------------------------------------
-    */
+    <script>
 
-    function updateRecentEvents() {
+        /*
+        |--------------------------------------------------------------------------
+        | Severity Chart
+        |--------------------------------------------------------------------------
+        */
 
-        fetch('{{ route('dashboard.recent-events') }}', {
-            headers: {
-                'Accept': 'application/json'
-            }
-        })
+        let severityChart = null;
 
-        .then(response => {
 
-            if (!response.ok) {
+        function updateSeverityChart(data) {
 
-                throw new Error(
-                    'Unable to retrieve recent security events.'
-                );
+            const canvas = document.getElementById('severity-chart');
 
-            }
-
-            return response.json();
-
-        })
-
-        .then(data => {
-
-            const tableBody =
-                document.getElementById('recent-events-table');
-
-            if (!data.events || data.events.length === 0) {
-
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="6"
-                            class="text-center py-4">
-                            No security events recorded yet.
-                        </td>
-                    </tr>
-                `;
-
+            if (!canvas) {
                 return;
-
             }
 
 
-            let rows = '';
+            /*
+            |--------------------------------------------------------------------------
+            | Destroy the previous chart
+            |--------------------------------------------------------------------------
+            */
+
+            if (severityChart) {
+                severityChart.destroy();
+            }
 
 
-            data.events.forEach(event => {
+            /*
+            |--------------------------------------------------------------------------
+            | Create the chart
+            |--------------------------------------------------------------------------
+            */
 
-                /*
-                |--------------------------------------------------------------------------
-                | Severity Badge
-                |--------------------------------------------------------------------------
-                */
+            severityChart = new Chart(canvas, {
 
-                let severityBadge = '';
+                type: 'bar',
 
-                if (event.severity === 'high') {
+                data: {
 
-                    severityBadge = `
-                        <span class="badge bg-danger">
-                            High
-                        </span>
-                    `;
+                    labels: [
+                        'High',
+                        'Medium',
+                        'Low'
+                    ],
 
-                } else if (event.severity === 'medium') {
+                    datasets: [{
 
-                    severityBadge = `
-                        <span class="badge bg-warning text-dark">
-                            Medium
-                        </span>
-                    `;
+                        label: 'Security Events',
 
-                } else {
+                        data: [
+                            data.highSeverity,
+                            data.mediumSeverity,
+                            data.lowSeverity
+                        ],
 
-                    severityBadge = `
-                        <span class="badge bg-success">
-                            Low
-                        </span>
-                    `;
+                        backgroundColor: [
+                            '#dc3545',
+                            '#ffc107',
+                            '#198754'
+                        ],
 
-                }
+                        borderWidth: 1
 
+                    }]
 
-                /*
-                |--------------------------------------------------------------------------
-                | Status Badge
-                |--------------------------------------------------------------------------
-                */
-
-                let statusBadge = '';
-
-                if (event.status === 'resolved') {
-
-                    statusBadge = `
-                        <span class="badge bg-success">
-                            Resolved
-                        </span>
-                    `;
-
-                } else if (event.status === 'investigating') {
-
-                    statusBadge = `
-                        <span class="badge bg-warning text-dark">
-                            Investigating
-                        </span>
-                    `;
-
-                } else {
-
-                    statusBadge = `
-                        <span class="badge bg-danger">
-                            Unresolved
-                        </span>
-                    `;
-
-                }
+                },
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Date Formatting
-                |--------------------------------------------------------------------------
-                */
+                options: {
 
-                const detectedAt =
-                    new Date(event.detected_at);
+                    responsive: true,
 
-                const formattedDate =
-                    detectedAt.toLocaleString(
-                        'en-GB',
-                        {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
+                    maintainAspectRatio: false,
+
+
+                    scales: {
+
+                        y: {
+
+                            beginAtZero: true,
+
+                            ticks: {
+
+                                precision: 0
+
+                            }
+
                         }
-                    );
+
+                    },
 
 
-                /*
-                |--------------------------------------------------------------------------
-                | Build Table Row
-                |--------------------------------------------------------------------------
-                */
+                    plugins: {
 
-                rows += `
-                    <tr>
+                        legend: {
 
-                        <td>
-                            #${event.id}
-                        </td>
+                            display: false
 
-                        <td>
-                            ${event.source_ip}
-                        </td>
+                        }
 
-                        <td>
-                            ${event.event_type}
-                        </td>
+                    }
 
-                        <td>
-                            ${severityBadge}
-                        </td>
-
-                        <td>
-                            ${statusBadge}
-                        </td>
-
-                        <td>
-                            ${formattedDate}
-                        </td>
-
-                    </tr>
-                `;
+                }
 
             });
 
-
-            tableBody.innerHTML = rows;
-
-        })
-
-        .catch(error => {
-
-            console.error(
-                'Recent events update failed:',
-                error
-            );
-
-        });
-
-    }
+        }
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Update Last Updated Time
-    |--------------------------------------------------------------------------
-    */
+        /*
+        |--------------------------------------------------------------------------
+        | Dashboard Statistics
+        |--------------------------------------------------------------------------
+        */
 
-    function updateLastUpdatedTime() {
+        function updateDashboardStats() {
 
-        const now = new Date();
+            fetch('{{ route('dashboard.stats') }}', {
 
-        document.getElementById('last-updated').textContent =
-            now.toLocaleTimeString();
+                headers: {
+                    'Accept': 'application/json'
+                }
 
-    }
+            })
 
+            .then(response => {
 
-    /*
-    |--------------------------------------------------------------------------
-    | Initial Dashboard Update
-    |--------------------------------------------------------------------------
-    */
+                if (!response.ok) {
 
-    function updateDashboard() {
+                    throw new Error(
+                        'Unable to retrieve dashboard statistics.'
+                    );
 
-        updateDashboardStats();
+                }
 
-        updateRecentEvents();
+                return response.json();
 
-        updateLastUpdatedTime();
-
-    }
+            })
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Initial Load
-    |--------------------------------------------------------------------------
-    */
+            .then(data => {
 
-    updateDashboard();
+                /*
+                |--------------------------------------------------------------------------
+                | Update Event Status Statistics
+                |--------------------------------------------------------------------------
+                */
+
+                document.getElementById('total-events').textContent =
+                    data.totalEvents;
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Automatic Refresh
-    |--------------------------------------------------------------------------
-    |
-    | Refresh the dashboard every 10 seconds.
-    |
-    */
+                document.getElementById('unresolved-events').textContent =
+                    data.unresolvedEvents;
 
-    setInterval(
-        updateDashboard,
-        10000
-    );
 
-</script>
+                document.getElementById('investigating-events').textContent =
+                    data.investigatingEvents;
+
+
+                document.getElementById('resolved-events').textContent =
+                    data.resolvedEvents;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Update Severity Statistics
+                |--------------------------------------------------------------------------
+                */
+
+                document.getElementById('high-severity').textContent =
+                    data.highSeverity;
+
+
+                document.getElementById('medium-severity').textContent =
+                    data.mediumSeverity;
+
+
+                document.getElementById('low-severity').textContent =
+                    data.lowSeverity;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Update Severity Chart
+                |--------------------------------------------------------------------------
+                */
+
+                updateSeverityChart(data);
+
+            })
+
+
+            .catch(error => {
+
+                console.error(
+                    'Dashboard statistics update failed:',
+                    error
+                );
+
+            });
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Recent Security Events
+        |--------------------------------------------------------------------------
+        */
+
+        function updateRecentEvents() {
+
+            fetch('{{ route('dashboard.recent-events') }}', {
+
+                headers: {
+                    'Accept': 'application/json'
+                }
+
+            })
+
+            .then(response => {
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        'Unable to retrieve recent security events.'
+                    );
+
+                }
+
+                return response.json();
+
+            })
+
+
+            .then(data => {
+
+                const tableBody =
+                    document.getElementById('recent-events-table');
+
+
+                if (!data.events || data.events.length === 0) {
+
+                    tableBody.innerHTML = `
+
+                        <tr>
+
+                            <td colspan="6"
+                                class="text-center py-4">
+
+                                No security events recorded yet.
+
+                            </td>
+
+                        </tr>
+
+                    `;
+
+                    return;
+
+                }
+
+
+                let rows = '';
+
+
+                data.events.forEach(event => {
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Severity Badge
+                    |--------------------------------------------------------------------------
+                    */
+
+                    let severityBadge = '';
+
+
+                    if (event.severity === 'high') {
+
+                        severityBadge = `
+
+                            <span class="badge bg-danger">
+                                High
+                            </span>
+
+                        `;
+
+                    }
+
+                    else if (event.severity === 'medium') {
+
+                        severityBadge = `
+
+                            <span class="badge bg-warning text-dark">
+                                Medium
+                            </span>
+
+                        `;
+
+                    }
+
+                    else {
+
+                        severityBadge = `
+
+                            <span class="badge bg-success">
+                                Low
+                            </span>
+
+                        `;
+
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Status Badge
+                    |--------------------------------------------------------------------------
+                    */
+
+                    let statusBadge = '';
+
+
+                    if (event.status === 'resolved') {
+
+                        statusBadge = `
+
+                            <span class="badge bg-success">
+                                Resolved
+                            </span>
+
+                        `;
+
+                    }
+
+                    else if (event.status === 'investigating') {
+
+                        statusBadge = `
+
+                            <span class="badge bg-warning text-dark">
+                                Investigating
+                            </span>
+
+                        `;
+
+                    }
+
+                    else {
+
+                        statusBadge = `
+
+                            <span class="badge bg-danger">
+                                Unresolved
+                            </span>
+
+                        `;
+
+                    }
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Date Formatting
+                    |--------------------------------------------------------------------------
+                    */
+
+                    const detectedAt =
+                        new Date(event.detected_at);
+
+
+                    const formattedDate =
+                        detectedAt.toLocaleString(
+                            'en-GB',
+                            {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            }
+                        );
+
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Build Table Row
+                    |--------------------------------------------------------------------------
+                    */
+
+                    rows += `
+
+                        <tr>
+
+                            <td>
+                                #${event.id}
+                            </td>
+
+                            <td>
+                                ${event.source_ip}
+                            </td>
+
+                            <td>
+                                ${event.event_type}
+                            </td>
+
+                            <td>
+                                ${severityBadge}
+                            </td>
+
+                            <td>
+                                ${statusBadge}
+                            </td>
+
+                            <td>
+                                ${formattedDate}
+                            </td>
+
+                        </tr>
+
+                    `;
+
+                });
+
+
+                tableBody.innerHTML = rows;
+
+            })
+
+
+            .catch(error => {
+
+                console.error(
+                    'Recent events update failed:',
+                    error
+                );
+
+            });
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Update Last Updated Time
+        |--------------------------------------------------------------------------
+        */
+
+        function updateLastUpdatedTime() {
+
+            const now = new Date();
+
+
+            document.getElementById('last-updated').textContent =
+                now.toLocaleTimeString();
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Update Dashboard
+        |--------------------------------------------------------------------------
+        */
+
+        function updateDashboard() {
+
+            updateDashboardStats();
+
+            updateRecentEvents();
+
+            updateLastUpdatedTime();
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Initial Dashboard Update
+        |--------------------------------------------------------------------------
+        */
+
+        updateDashboard();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Automatic Refresh
+        |--------------------------------------------------------------------------
+        |
+        | Refresh the dashboard every 10 seconds.
+        |
+        */
+
+        setInterval(
+            updateDashboard,
+            10000
+        );
+
+    </script>
 
 @stop
